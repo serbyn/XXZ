@@ -10,6 +10,7 @@
 #include <dmt.h>
 #include <obs.h>
 #include <obs_band.h>
+#include <obs_frac.h>
 #include <globalfunctions.h>
 #include "time.h"
 #include <sstream>
@@ -185,6 +186,118 @@ void rundiag (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     return;
 }
 
+// running measurments using ED data
+void runmeas (int nspin, int nruns, double hzinp, double Jzinp, string ver)
+{   //Global intialization
+    // Helper ints
+    string measname;
+    std::ostringstream out;
+    out.str("");
+    out << ver<<"_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".out";
+    measname = out.str();
+    FILE* fileout;
+    fileout = fopen( &measname[0], "w");
+    int i,k,hav, kmax;
+    // Number of hz configurations
+    hav = nruns;
+    double time_start, time_end;
+    // creating structures
+    hsp sc_hsp(nspin);
+    ham sc_ham(&sc_hsp);
+    dmt sc_dmt(&sc_hsp);
+    // Name of output file
+    out.str("");
+    out << ver<<"_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".h5";
+    // pointer for output file
+    string fname;
+    string gname;
+    fname = out.str();
+    //fileout = fopen( &fname[0], "w");
+    int kread[1];
+    int par[1]={nspin};
+    double par_d[1]={hzinp};
+    IntType inttype( PredType::NATIVE_INT );
+    inttype.setOrder( H5T_ORDER_LE );
+    IntType doubtype( PredType::NATIVE_DOUBLE);
+    doubtype.setOrder( H5T_ORDER_LE );
+    hsize_t     dimsf[1];              // dataset dimensions
+    dimsf[0] = 1;
+    H5std_string  FILE_NAME( &fname[0] );
+    H5File *file;
+    DataSet datasetN;
+    DataSet dataset;
+    if (file_exists_test(fname)){
+        cout<<"File  "<<fname<<"  exists ==> doing measurment using data from existing file"<<endl;
+        file = new H5File( FILE_NAME, H5F_ACC_RDWR);
+        //H5LTread_dataset(file,"/nruns",kread);
+        datasetN  = file->openDataSet("/nruns");
+        datasetN.read(kread, PredType::NATIVE_INT);
+        kmax = kread[0]+1;
+        cout<<"File  "<<fname<<"  contains "<<kmax<<" iterations; beginning measurments"<<endl;
+    }else {
+        cout<<"FILE "<<fname<< " DOES NOT EXIST!!!, TERMINATING"<<endl;
+        exit(-1);
+    }
+//    obs_band sc_obs_band(&sc_hsp, &sc_ham, &myran, kmax, fileout, &sc_dmt);
+    obs_frac sc_obs_frac(&sc_hsp, &sc_ham, &myran, kmax, fileout);
+    Group group;
+    H5std_string  Warr_NAME( "/Warr" );
+    H5std_string  Jzz_NAME( "/Jzz" );
+    H5std_string  Jperp_NAME( "/Jperp" );
+    H5std_string  W_NAME( "/W" );
+    H5std_string  A_NAME( "/A" );
+    dimsf[0] = nspin;
+    DataSpace dataspace1( 1, dimsf );
+    dimsf[0] = sc_hsp.hdim;
+    DataSpace dataspace2( 1, dimsf );
+    dimsf[0] = sc_hsp.hdim2;
+    DataSpace dataspace3( 1, dimsf );
+    
+    
+    // arrays with parameters of Hamiltonian
+    double * hz;
+    hz = new double[nspin];
+    double * Jz;
+    Jz = new double[nspin];
+    double * Jp;
+    Jp = new double[nspin];
+    for (i=0;i<nspin;i++)
+    {
+        hz[i]= hzinp*(2.*(myran.doub())-1.);
+        Jz[i] = Jzinp;
+        Jp[i] = 1.;
+    }
+    sc_ham.setparam(hz,Jz,Jp);
+    sc_ham.createH();
+    // loop over different realizations of disorder
+    for (k=0; k<kmax; k++) {
+        par[0]=k;
+        datasetN.write(par,PredType::NATIVE_INT);
+        out.str("");
+        out << "/run_"<<k;
+        gname = out.str();
+        // reading from hdf5
+        time_start = time(0);
+        dataset  = file->openDataSet(gname+"/W");
+        dataset.read(sc_ham.W, PredType::NATIVE_DOUBLE);
+        dataset  = file->openDataSet(gname+"/A");
+        dataset.read(sc_ham.A, PredType::NATIVE_DOUBLE);
+        time_end = time(0);
+        cout <<"k="<<k<<"; Elapsed for reading  data time is t="<<time_end-time_start<<endl;
+        sc_obs_frac.measuredata();
+    }
+    // final output
+    sc_obs_frac.filep = fileout;
+    sc_obs_frac.writebasicdata();
+    sc_obs_frac.writedata();
+    fclose(fileout);
+    delete[] hz;
+    delete[] Jz;
+    delete[] Jp;
+    file->close();
+    return;
+}
+
 
 void runsim (int nspin, int nruns, double hzinp, double Jzinp, string ver)
 {   //Global intialization
@@ -272,6 +385,7 @@ void runsim (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     sc_obs_band.writebasicdata();
     sc_obs_band.writedata();
     fclose(fileout);
+    
     delete[] hz;
     delete[] Jz;
     delete[] Jz0;
@@ -315,7 +429,7 @@ int main (int argc, char const *argv[]){ // hz, Jz, name of version
     else{//running in the test mode
         cout<<"%Test mode"<<endl;
         //runsim(12,5,.5,1.,"test");
-        rundiag(8,2,.6,1.,"h5test");
+        runmeas(8,2,.6,1.,"h5test");
     }
     time_end = time(0);
     //cout<<"Total running time was"<<time_end-time_start<<endl;

@@ -1,3 +1,5 @@
+#ifndef ran_h
+#define ran_h
 struct Ran {
     unsigned long long int u,v,w;
     Ran(unsigned long long int j) : v(4101842887655102017LL), w(1) {
@@ -17,3 +19,4 @@ struct Ran {
     inline double doub() { return 5.42101086242752217E-20 * int64(); }
     inline unsigned int int32() { return (unsigned int)int64(); }
 };
+#endif
