@@ -59,7 +59,7 @@ void obs_frac::measure_hist_wf(double* hwf){
         hwf[col]=0;
     }
     for (col=ez-dt/2; col<ez+dt/2; col++) {
-        for (row=ez-dt/2; row<ez+dt/2; row++) {
+        for (row=0; row<hdim; row++) {
             cel = row+((integer)hdim)*col;
             if (absv(theham->A[cel])>1e-15){
                 ind = (int)floor(-log(absv(theham->A[cel]))/30*nbins);
@@ -85,7 +85,7 @@ void obs_frac::measure_wf_overlap(double* hwf,double* hwf_log){
     double ps12,ov,ov_log;
     // column specifies eigenvector number
     for (col1=ez-dt/2; col1<ez+dt/2; col1++) {
-        for (col2=ez-dt/2; col2<ez+dt/2; col2++) {
+        for (col2=0; col2<hdim; col2++) {
             ind = (int)((theham->W[col1]-theham->W[col2]+2.5)/5.*(nbins));
             if ((ind>=0)&(ind<nbins)){
                 ov =0;
