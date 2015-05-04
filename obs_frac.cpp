@@ -133,11 +133,11 @@ void obs_frac::writedata() {
     fput("hist for wf coefficients", darr3, nbins);
     fput("disp", darr4, nbins);
     
-    getav(hist_wf, crun, nbins, darr3, darr4);
+    getav(wf_overlap, crun, nbins, darr3, darr4);
     fput("mean overlap with energy", darr3, nbins);
     fput("disp", darr4, nbins);
     
-    getav(hist_wf, crun, nbins, darr3, darr4);
+    getav(wf_overlap_typ, crun, nbins, darr3, darr4);
     fput("typical overlap with energy", darr3, nbins);
     fput("disp", darr4, nbins);
     
