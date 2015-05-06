@@ -138,14 +138,18 @@ void getav(double ** arr, int size1, int size2, double *av){
 // averages 2dim array of doubles over first dimension, results are written to arrays av and disp
 void getav(double ** arr, int size1, int size2, double *av, double *disp){
     int N = 5;
-    int M, M0;
+    int M, M0,size1cut,nsamples;
     if (size1>N){
         M = size1/N;
+        size1cut = M*N;
+        nsamples = M;
         M0 = M+(size1%N);
     } else {
-        M=1;
+        M=size1;
         M0=1;
         N=1;
+        size1cut = size1;
+        nsamples = size1;
     }
     int i,j,k;
     double * av0;
@@ -154,12 +158,11 @@ void getav(double ** arr, int size1, int size2, double *av, double *disp){
         for (k=0; k<N; k++){
             av0[k] = 0.;
         }
-        for (i=0; i<size1; i++) {
-            av0[(i/M)%N] += arr[i][j];
+        for (i=0; i<size1cut; i++) {
+            av0[(i/M)] += arr[i][j];
         }
-        av0[0] = av0[0]/((double)M0);
-        for (k=1; k<N; k++){
-            av0[k] = av0[k]/((double)M);
+        for (k=0; k<N; k++){
+            av0[k] = av0[k]/((double)nsamples);
         }
         getav0(av0, N, av+j, disp+j);
     }
@@ -169,14 +172,18 @@ void getav(double ** arr, int size1, int size2, double *av, double *disp){
 // averages 2dim array of int over first dimension, results are written to arrays av and disp
 void getav(int ** arr, int size1, int size2, double *av, double *disp){
     int N = 5;
-    int M, M0;
+    int M, M0,size1cut,nsamples;
     if (size1>N){
         M = size1/N;
+        size1cut = M*N;
+        nsamples = M;
         M0 = M+(size1%N);
     } else {
-        M=1;
+        M=size1;
         M0=1;
         N=1;
+        size1cut = size1;
+        nsamples = size1;
     }    int i,j,k;
     double * av0;
     av0 = new double[N];
@@ -184,12 +191,11 @@ void getav(int ** arr, int size1, int size2, double *av, double *disp){
         for (k=0; k<N; k++){
             av0[k] = 0.;
         }
-        for (i=0; i<size1; i++) {
+        for (i=0; i<size1cut; i++) {
             av0[(i/M)%N] += arr[i][j];
         }
-        av0[0] = av0[0]/((double)M0);
-        for (k=1; k<N; k++){
-            av0[k] = av0[k]/((double)M);
+        for (k=0; k<N; k++){
+            av0[k] = av0[k]/((double)nsamples);
         }
         getav0(av0, N, av+j, disp+j);
     }

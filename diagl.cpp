@@ -11,6 +11,7 @@
 #include <obs.h>
 #include <obs_band.h>
 #include <obs_frac.h>
+#include <obs_mel.h>
 #include <globalfunctions.h>
 #include "time.h"
 #include <sstream>
@@ -193,7 +194,7 @@ void runmeas (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     string measname;
     std::ostringstream out;
     out.str("");
-    out << ver<<"_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".out";
+    out << ver<<"_mel_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".out";
     measname = out.str();
     FILE* fileout;
     fileout = fopen( &measname[0], "w");
@@ -227,19 +228,22 @@ void runmeas (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     DataSet datasetN;
     DataSet dataset;
     if (file_exists_test(fname)){
-        cout<<"File  "<<fname<<"  exists ==> doing measurment using data from existing file"<<endl;
+        cout<<"%File  "<<fname<<"  exists ==> doing measurment using data from existing file"<<endl;
         file = new H5File( FILE_NAME, H5F_ACC_RDWR);
         //H5LTread_dataset(file,"/nruns",kread);
         datasetN  = file->openDataSet("/nruns");
         datasetN.read(kread, PredType::NATIVE_INT);
         kmax = kread[0]+1;
-        cout<<"File  "<<fname<<"  contains "<<kmax<<" iterations; beginning measurments"<<endl;
+        cout<<"%File  "<<fname<<"  contains "<<kmax<<" realizations;"<<endl;
+        if (kmax>nruns) kmax = nruns;
+        cout<<"%Using "<<kmax<<" of them... beginning measurments..."<<endl;
     }else {
-        cout<<"FILE "<<fname<< " DOES NOT EXIST!!!, TERMINATING"<<endl;
+        cout<<"%FILE "<<fname<< " DOES NOT EXIST!!!, TERMINATING"<<endl;
         exit(-1);
     }
 //    obs_band sc_obs_band(&sc_hsp, &sc_ham, &myran, kmax, fileout, &sc_dmt);
-    obs_frac sc_obs_frac(&sc_hsp, &sc_ham, &myran, kmax, fileout);
+//    obs_frac sc_obs_frac(&sc_hsp, &sc_ham, &myran, kmax, fileout);
+    obs_mel sc_obs_frac(&sc_hsp, &sc_ham, &myran, kmax, fileout);
     Group group;
     H5std_string  Warr_NAME( "/Warr" );
     H5std_string  Jzz_NAME( "/Jzz" );
@@ -271,8 +275,6 @@ void runmeas (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     sc_ham.createH();
     // loop over different realizations of disorder
     for (k=0; k<kmax; k++) {
-        par[0]=k;
-        datasetN.write(par,PredType::NATIVE_INT);
         out.str("");
         out << "/run_"<<k;
         gname = out.str();
@@ -283,8 +285,11 @@ void runmeas (int nspin, int nruns, double hzinp, double Jzinp, string ver)
         dataset  = file->openDataSet(gname+"/A");
         dataset.read(sc_ham.A, PredType::NATIVE_DOUBLE);
         time_end = time(0);
-        cout <<"k="<<k<<"; Elapsed for reading  data time is t="<<time_end-time_start<<endl;
+        cout <<"%k="<<k<<"; Elapsed for reading  data time is t="<<time_end-time_start<<endl;
+        time_start = time(0);
         sc_obs_frac.measuredata();
+        time_end = time(0);
+        cout <<"Elapsed for measuring data time is t="<<time_end-time_start<<endl;
     }
     // final output
     sc_obs_frac.filep = fileout;
@@ -429,7 +434,7 @@ int main (int argc, char const *argv[]){ // hz, Jz, name of version
     else{//running in the test mode
         cout<<"%Test mode"<<endl;
         //runsim(12,5,.5,1.,"test");
-        runmeas(12,4,.6,1.,"h5test");
+        runmeas(12,12,.6,1.,"h5test");
     }
     time_end = time(0);
     //cout<<"Total running time was"<<time_end-time_start<<endl;
