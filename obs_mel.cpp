@@ -423,7 +423,7 @@ void obs_mel::buildA2c(){
     cout << endl;
      */
 }
-
+/*
 template<typename T> class CompareIndicesByAnotherVectorValues {
     std::vector<T>* _values;
     public: CompareIndicesByAnotherVectorValues(std::vector<T>* values): _values(values) {}
@@ -454,6 +454,13 @@ void argsort(RAIter iterBegin, RAIter iterEnd, Compare comp,
     std::transform(pv.begin(), pv.end(), indexes.begin(),
                    [](const std::pair<size_t,RAIter>& a) -> size_t { return a.first ; }) ;
 }
+*/
+
+
+typedef std::pair<int,int> mypair;
+bool comparator ( const mypair& l, const mypair& r)
+{ return l.second < r.second; };
+
 // procedure that works with usual spectrum: computes:
 // distribution of Mnn 
 // average of Mnn*deltaE with deltaE
@@ -473,7 +480,8 @@ void argsort(RAIter iterBegin, RAIter iterEnd, Compare comp,
 // (5) average number of resonances with energy density ==== resav
 
 // fills in the histogram of matrix elements and adjacent energy levels
-void obs_mel::fillhist2sort(double *h1, double *h2, double *md, int *counts2, double *md2, int *counts3,double *mddistr,double *resf,double *resav,double *resav2){
+void obs_mel::fillhist2sort(double *h1, double *h2, double *md, int *counts2, double *md2, int *counts3,double *mddistr,double *resf,double *
+    resav,double *resav2){
     integer row, col, ind,ind2,inde,inde1, cel;
     double inc  = 1./(hdim);
     double Z=0.25; // factor over which we multiply matrix element
@@ -505,8 +513,19 @@ void obs_mel::fillhist2sort(double *h1, double *h2, double *md, int *counts2, do
              //cout<<W[row]<<",";
     }
     // sorting it: now we have the correct order in indices, array W is left intact!!! To go in the correct order after reshuffling, we now have to use indexes[] as an index!
-    std::vector<size_t> indexes;
-    argsort(W, W + hdim, std::less<double>(), indexes);
+    pair<int,double> *mypair = new pair<int,double>[hdim];
+    for (row=0; row<hdim; row++) {
+        mypair[row].first = row;
+        mypair[row].second = W[row];
+        //cout<< mypair[ii].first<<","<< mypair[ii].second<<endl;
+    }
+    std::sort(mypair, mypair+hdim, comparator);
+    int* indexes=new int[hdim];
+    for (row=0; row<hdim; row++) {
+        //cout<< mypair[row].first<<","<< mypair[row].second<<endl;
+        indexes[row] =mypair[row].first;
+    }
+   // argsort(W, W + hdim, std::less<double>(), indexes);
     double bw = theham->W[hdim-1]-theham->W[0];
     double bw2 = 0.5*(theham->W[hdim-1]-theham->W[0]);
     double e0 =theham->W[0];
@@ -613,6 +632,8 @@ void obs_mel::fillhist2sort(double *h1, double *h2, double *md, int *counts2, do
         cout<<","<<resf[col];
     }
     cout<<"];"<<endl;
+    delete[] mypair;
+    delete[] indexes;
 /*    for (col=0; col<nbins; col++){
     //cout<<mdc[col]<<"/"<<counts4[col]<<endl;
 //        if (counts4[col]>0) mdc[col]=((double) mdc[col])/(double)counts4[col];
