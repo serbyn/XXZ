@@ -802,7 +802,7 @@ void obs_mel::fillIPR(double* iprM, double *iprMstat){
         iprl=0;
         for (row=0; row<hdim; row++) {
             cel = row+hdim*col;
-            cef= absv(A2c[cel]);
+            cef= absv(iprmat.A[cel]);
             if (cef>1e-15){
                 ind = (int)floor(-log(cef)/30*nbins);
             } else {
@@ -810,8 +810,9 @@ void obs_mel::fillIPR(double* iprM, double *iprMstat){
             }
             if (ind<0) ind =0;
             iprMstat[ind]+=1;
-            iprl+=pow(cef,4);
+            iprl+=pow(cef,2);
         }
+        cout<<iprl<<endl;
         ni++;
         iprM[0]+=1./iprl;
     }
@@ -969,7 +970,11 @@ void obs_mel::measureAstat2(){
 	    fillhist2sort(hyst1[cind],hyst2[cind],mdE[cind],cE[crun],mdE2[cind],cE2[crun],mdd[cind],mdc[cind],mdce[cind],mdce2[cind]);
         fillIPR(iprM+cind,iprMstat[cind]);
 	}
-     /* 
+    // for (int iter=0;iter<nobs*nruns;iter++){
+    //     cout<<iprM[iter]<<",";
+    // }
+    //cout<<endl;
+     /*
     // spsm in the beginning
     cind = nruns+crun;
     spsmmA2vec(cspin2);
