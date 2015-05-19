@@ -810,9 +810,9 @@ void obs_mel::fillIPR(double* iprM, double *iprMstat){
             }
             if (ind<0) ind =0;
             iprMstat[ind]+=1;
-            iprl+=pow(cef,2);
+            iprl+=pow(cef,4);
         }
-        cout<<iprl<<endl;
+        //cout<<iprl<<endl;
         ni++;
         iprM[0]+=1./iprl;
     }
