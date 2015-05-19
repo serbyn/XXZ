@@ -46,6 +46,8 @@ class obs_mel: public obs{
     double **mdc;
     double **mdce;
     double **mdce2;
+    double **beta,**betaL,**m,**mL,**moES,**moESL;
+    double *iprM, **iprMstat;
     // different operators
     void szA2(); // constructing the matrix after action of sz
     void szszA2(); // constructing the matrix after action of szsz
@@ -59,12 +61,15 @@ class obs_mel: public obs{
     void spsmmA2vec(int ns); // constructing the matrix after action of S+S- + S-S+ on generic spin ns and ns+1
     void sp__smA2vec(); // constructing the matrix after action of S+S- + S-S+ at the opposite ends
     void currA2();// action of current operator
+    void curr1A2(int spinpos); // current operator on given 2 sites
     //measuring functions
     void buildA2c(); // fills in A2c -- matrix of coefficients
     void fillhist2sort(double *h1,double *h2,double *md, int *ce, double *md2, int *ce2,double *mddistr, double *mdc, double *mdde, double *mdde2); // fill histogram of matrix elements and adjacent energy levels
     void fillhist2(double *h1,double *h2,double *md, int *ce, double *md2, int *ce2,double *mddistr, double *mdc, double *mdde); // fill histogram of matrix elements and adjacent energy levels
     void fillhist2fast(double *h2,double *md, int *ce, double *md2, int *ce2,double *mddistr); // fill histogram of matrix elements and adjacent energy levels
     void fillae(double *ae,double *ae1,double *ae2,double *,double *,double *); // fills ae
+    void fillaN(double *beta,double *betaL,double *m,double *mL,double *moeS,double *moeSL); // fills the same as ae but with index
+    void fillIPR(double *iprM,double *iprMstat);//filling IPR's
     // measuring statistics of matrix elements
     void measureAstat2(); // measures data set II-1 and II-2 simultaneously
 };

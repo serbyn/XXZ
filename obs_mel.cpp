@@ -33,7 +33,7 @@ obs_mel::obs_mel(hsp *thehsp1, ham* theham1, Ran* theran1, int nruns1, FILE* fil
     dt = 2*( (int) (hdim/nspin/2));
     if (dt<2) dt=2;
     nbins = 1000;
-    nobs = 2;
+    nobs = 4;
     ez=hdim/2;
     hw = 1;
     cout<<"% in the middle we have "<< dt <<" states to study"<<endl;
@@ -61,6 +61,14 @@ obs_mel::obs_mel(hsp *thehsp1, ham* theham1, Ran* theran1, int nruns1, FILE* fil
     aeoEL = createdouble(nruns*nobs,nbins);
     aew = createdouble(nruns*nobs,nbins);
     snapv1 = createdouble(nobs,hdim);
+    beta = createdouble(nobs*nruns,nbins);
+    betaL = createdouble(nobs*nruns,nbins);
+    m = createdouble(nobs*nruns,nbins);
+    mL = createdouble(nobs*nruns,nbins);
+    moES = createdouble(nobs*nruns,nbins);
+    moESL = createdouble(nobs*nruns,nbins);
+    iprM = new double[nobs*nruns];
+    iprMstat = createdouble(nobs*nruns,nbins);
 }
 
 
@@ -85,6 +93,14 @@ obs_mel::~obs_mel() {
     destroy(mdc,nobs*nruns);
     destroy(mdce,nobs*nruns);
     destroy(mdce2,nobs*nruns);
+    destroy(beta,nobs*nruns);
+    destroy(betaL,nobs*nruns);
+    destroy(m,nobs*nruns);
+    destroy(mL,nobs*nruns);
+    destroy(moES,nobs*nruns);
+    destroy(moESL,nobs*nruns);
+    delete[] iprM;
+    destroy(iprMstat,nobs*nruns);
 }
 // QUANTITIES II-1
 // creating matrix A2 = 2sz A, where sz acts on the largest index or rightmost spin
@@ -257,6 +273,54 @@ void obs_mel::sp__smMA2(){
             }
                 
         }
+    }
+}
+
+// creating matrix A2 = j A where j is current operator on firts 2 sites
+void obs_mel::curr1A2(int spinpos){
+    integer col,row,tmp,s1,s2,b,row2;
+    int t;
+    if ((spinpos<0)||(spinpos>nspin-1)){
+        cout<<"obs_mel::curr1A2(int spinpos):: error: illegal value of spinpos="<<spinpos<<endl;
+        exit(-1);
+    }
+    //memcpy(A2, theham->A, sizeof(double)*hdim2); //start with the matrix A
+    for(col=0; col<hdim2; col++) {
+        A2[col]=0.;
+    }
+    // loop over spin position before end
+    if(spinpos<nspin-1) {
+        t = (int)pow(2,spinpos);// spinpos ranges from 0 to nspin-1, hence t goes from 1 to 2^(nspin-1)
+        for (row=0; row<hdim; row++) {
+            tmp = thehsp->hspace[row]/t;
+            s1 = tmp%2;
+            s2 = (tmp/2)%2;
+            b = 2*((int)(thehsp->hspace[row]%t)/2);
+            if ((s1!=s2)){
+                row2 = thehsp->dict[thehsp->hspace[row] -s1*t+s2*t -s2*2*t+s1*2*t];
+                if (s1==0){
+                    cblas_daxpy(hdim, 1., theham->A+row2, hdim, A2+row, hdim);
+                } else {
+                    cblas_daxpy(hdim, -1., theham->A+row2, hdim, A2+row, hdim);
+                }
+            }
+        }
+    } else{ // assuming that spin operator goes across the cut
+    t = (int)pow(2,nspin-1);// spinpos ranges from 0 to nspin-1, hence t goes from 1 to 2^(nspin-1)
+    for (row=0; row<hdim; row++) {
+        tmp = thehsp->hspace[row]/t;
+        s1 = tmp%2;
+        s2 = thehsp->hspace[row]%2; // spin at the other end
+        b = 2*((int)(thehsp->hspace[row]%t)/2);
+        if ((s1!=s2)){
+            row2 = thehsp->dict[b+s1+t*s2];
+            if (s1==0){
+                cblas_daxpy(hdim, 1., theham->A+row2, hdim, A2+row, hdim);
+            } else {
+                cblas_daxpy(hdim, -1., theham->A+row2, hdim, A2+row, hdim);
+            }
+        }
+    }
     }
 }
 
@@ -457,7 +521,7 @@ void argsort(RAIter iterBegin, RAIter iterEnd, Compare comp,
 */
 
 
-typedef std::pair<int,int> mypair;
+typedef std::pair<int,double> mypair;
 bool comparator ( const mypair& l, const mypair& r)
 { return l.second < r.second; };
 
@@ -627,11 +691,11 @@ void obs_mel::fillhist2sort(double *h1, double *h2, double *md, int *counts2, do
     delete [] counts4;
     delete [] counts5;
     delete [] countsR;
-    cout<<"mddistr("<<crun+1<<",:)=["<<mddistr[0];
+   /* cout<<"mddistr("<<crun+1<<",:)=["<<mddistr[0];
     for (col=1; col<10; col++){
         cout<<","<<resf[col];
     }
-    cout<<"];"<<endl;
+    cout<<"];"<<endl;*/
     delete[] mypair;
     delete[] indexes;
 /*    for (col=0; col<nbins; col++){
@@ -718,7 +782,41 @@ void obs_mel::fillhist2fast(double *h2, double *md, int *counts2, double *md2, i
     md2[band2-1]/= (double) hdim-1;
 }
 
-
+void obs_mel::fillIPR(double* iprM, double *iprMstat){
+    int col, row, ind;
+    integer cel;
+    iprM[0]=0.;
+    for (row=0; row<nbins; row++) {
+        iprMstat[row]=0;
+    };
+    matrix iprmat(hdim,false);
+    memcpy(iprmat.A, A2c, hdim2*sizeof(double));
+    for (row=0; row<hdim; row++) {
+        iprmat.A[row+hdim*row] += theham->W[row];
+    }
+    iprmat.diagonalize();
+    double cef;
+    int ni=0;
+    double iprl;
+    for (col=ez-dt/2; col<ez+dt/2; col++) {
+        iprl=0;
+        for (row=0; row<hdim; row++) {
+            cel = row+hdim*col;
+            cef= absv(A2c[cel]);
+            if (cef>1e-15){
+                ind = (int)floor(-log(cef)/30*nbins);
+            } else {
+                ind = nbins-1;
+            }
+            if (ind<0) ind =0;
+            iprMstat[ind]+=1;
+            iprl+=pow(cef,4);
+        }
+        ni++;
+        iprM[0]+=1./iprl;
+    }
+    iprM[0]/=(double)ni;
+}
 
 //fills in distribution of matrix elements with energy difference in the middle of the band: power: linear, square spectral function
 // elements are filled for the middle of the band
@@ -742,24 +840,29 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
     double mel,mel2;
     double melL;
     for (col=ez-dt/2; col<ez+dt/2; col++) {
-        for (row=col+1; row<hdim; row++) {
+        for (row=0; row<hdim; row++) {
             cel = row+hdim*col;
-            if (row!=col){
-                ind = (int)((theham->W[row]-theham->W[col])/10.*(nbins));
+            mel  = absv(A2c[cel]);
+            mel2 = pow(mel,2);
+            // filling only positive energy part:
+            if (row>col){
+                ind = (int)((theham->W[row]-theham->W[col])/5.*(nbins));
                 if (ind<0) ind = 0;
                 if (ind>=nbins) ind = nbins-1;
-                mel  = absv(A2c[cel]);
-                mel2 = pow(mel,2);
                 melL = log(mel);
                 ae0[ind] += mel;
                 ae1[ind] += mel2;
                 aeoE[ind] += mel2/absv(theham->W[row]-theham->W[col]);
                 ae0L[ind] += melL;
                 aeoEL[ind] += 2*melL - log(absv(theham->W[row]-theham->W[col]));
-                aew[ind] += mel2;
                 cntr[ind]+=1;
                 //ae1n += pow(A2c[row+hdim*col],2);
             }
+            // filling all energies for spectral function
+            ind = (int)((theham->W[row]-theham->W[col]+2.5)/5.*(nbins));
+            if (ind<0) ind = 0;
+            if (ind>=nbins) ind = nbins-1;
+            aew[ind] += mel2; // spectral function includes contribution at zero energy
             //cout<<theham->W[row]-theham->W[col]<<","<<pow(A2c[row+hdim*col],2)<<";";
         }
     }
@@ -776,6 +879,74 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
     //cout<<"];";
 }
 
+//fills in distribution of matrix elements with index in the middle of the band
+void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moeS,double *moeSL){
+    int col, row, ind;
+    integer cel;
+    //double ae1n;
+    int *cntr = new int[nbins];
+    int *cntrS = new int[nbins];
+    for (row=0; row<nbins; row++) {
+        beta[row] = 0.;
+        betaL[row] = 0.;
+        m[row] = 0.;
+        mL[row] = 0.;
+        moeS[row] = 0.;
+        moeSL[row] = 0.;
+        cntr[row] = 0;
+        cntrS[row] = 0;
+    }
+    //cout<<"matrix elements with energy"<<endl;
+    //cout<<"mat=[";
+    //ae1n = 0;
+    double mel,mel2;
+    double melL;
+    double mdiagL;
+    double mdiag2;
+    double csum;
+    for (col=ez-dt/2; col<ez+dt/2; col++) {
+        csum=0;
+        for (row=0; row<hdim; row++) {
+            cel = row+hdim*col;
+            mel  = absv(A2c[cel]);
+            mel2 = pow(mel,2);
+            mdiagL = log(absv(A2c[col+hdim*col]));
+            mdiag2 = pow(A2c[col+hdim*col],2);
+            melL = log(mel);
+            ind = abs(row-col);
+            //if (ind<0) ind = 0;
+            if (ind>=nbins) ind = nbins-1;
+            beta[ind] += mel2/mdiag2;
+            betaL[ind] += melL - mdiagL;
+            m[ind] +=mel;
+            mL[ind] +=melL;
+            cntr[ind]++;
+            if (row>col){
+                csum+=mel2/absv(theham->W[row]-theham->W[col]);
+                moeS[ind]+=csum;
+                moeSL[ind]+=log(csum);
+                cntrS[ind]++;
+            }
+        }
+    }
+    for (row=0; row<nbins; row++) {
+        if (cntr[row]>0){
+            beta[row] /= (double)cntr[row];
+            betaL[row] /= (double)cntr[row];
+            m[row] /= (double)cntr[row];
+            mL[row] /= (double)cntr[row];
+        }
+        if (cntr[row]>0){
+            moeS[row] /= (double)cntrS[row];
+            moeSL[row] /= (double)cntrS[row];
+        }
+    }
+    delete[] cntr;
+    delete[] cntrS;
+    //cout<<"];";
+}
+
+
 
 
 // measuring distribution of the matrix elements for all operators
@@ -790,11 +961,13 @@ void obs_mel::measureAstat2(){
 	    cind = crun+nruns*iter;
 	    if (iter==0)  szA2vec(cspin);    //szmA2(cspin);
 	    else if (iter==1) spsmmA2vec(cspin2);
-	    else if (iter==2) sp__smMA2();
-	    else if (iter==3) currA2();
+	    else if (iter==2) curr1A2(0);
+	    else if (iter==3) sp__smMA2();
    	    buildA2c();
   	    fillae(ae0[cind],ae1[cind],aeoE[cind],ae0L[cind],aeoEL[cind],aew[cind]);
+        fillaN(beta[cind],betaL[cind],m[cind],mL[cind],moES[cind],moESL[cind]);
 	    fillhist2sort(hyst1[cind],hyst2[cind],mdE[cind],cE[crun],mdE2[cind],cE2[crun],mdd[cind],mdc[cind],mdce[cind],mdce2[cind]);
+        fillIPR(iprM+cind,iprMstat[cind]);
 	}
      /* 
     // spsm in the beginning
@@ -973,6 +1146,53 @@ void obs_mel::writedata() {
     for (int i=0; i<nobs; i++) {
         getav(aew+nruns*i, crun, nbins, darr3, darr4);
         fput("A(w) ", darr3, nbins);
+        fput("disp", darr4, nbins);
+    }
+    
+    for (int i=0; i<nobs; i++) {
+        getav(beta+nruns*i, crun, nbins, darr3, darr4);
+        fput("beta vs N", darr3, nbins);
+        fput("disp", darr4, nbins);
+    }
+    
+    for (int i=0; i<nobs; i++) {
+        getav(betaL+nruns*i, crun, nbins, darr3, darr4);
+        fput("log beta vs N", darr3, nbins);
+        fput("disp", darr4, nbins);
+    }
+    
+    for (int i=0; i<nobs; i++) {
+        getav(m+nruns*i, crun, nbins, darr3, darr4);
+        fput("m vs N", darr3, nbins);
+        fput("disp", darr4, nbins);
+    }
+    
+    for (int i=0; i<nobs; i++) {
+        getav(mL+nruns*i, crun, nbins, darr3, darr4);
+        fput("log m vs N", darr3, nbins);
+        fput("disp", darr4, nbins);
+    }
+    
+    for (int i=0; i<nobs; i++) {
+        getav(moES+nruns*i, crun, nbins, darr3, darr4);
+        fput("<sum M^2/E> vs N", darr3, nbins);
+        fput("disp", darr4, nbins);
+    }
+    
+    for (int i=0; i<nobs; i++) {
+        getav(moESL+nruns*i, crun, nbins, darr3, darr4);
+        fput("log sum M2/E vs N", darr3, nbins);
+        fput("disp", darr4, nbins);
+    }
+    for (int i=0; i<nobs; i++) {
+        getav(iprM+nruns*i, crun, darr3, darr4);
+        fput("average IPR", darr3, 1);
+        fput("disp", darr4, 1);
+    }
+    
+    for (int i=0; i<nobs; i++) {
+        getav(iprMstat+nruns*i, crun, nbins, darr3, darr4);
+        fput("histogram of coefficients", darr3, nbins);
         fput("disp", darr4, nbins);
     }
     delete[] darr1;

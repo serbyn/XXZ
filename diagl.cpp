@@ -309,7 +309,7 @@ void runsim (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     // Name of output file
     std::ostringstream out;
     out.str("");
-    out << ver<<"_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".out";
+    out << ver<<"_mel_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".out";
     // pointer for output file
     FILE* fileout;
     string fname;
@@ -325,8 +325,7 @@ void runsim (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     // creating structures
     hsp sc_hsp(nspin);
     ham sc_ham(&sc_hsp);
-    dmt sc_dmt(&sc_hsp);
-    obs_band sc_obs_band(&sc_hsp, &sc_ham, &myran, nruns, fileout, &sc_dmt);
+    obs_mel sc_obs_band(&sc_hsp, &sc_ham, &myran, nruns, fileout);
     // arrays with parameters of Hamiltonian
     double * hz;
     hz = new double[nspin];
@@ -434,7 +433,7 @@ int main (int argc, char const *argv[]){ // hz, Jz, name of version
     else{//running in the test mode
         cout<<"%Test mode"<<endl;
         //runsim(12,5,.5,1.,"test");
-        runmeas(12,12,.6,1.,"h5test");
+        runsim(12,12,.6,1.,"h5test");
     }
     time_end = time(0);
     //cout<<"Total running time was"<<time_end-time_start<<endl;
