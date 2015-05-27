@@ -860,7 +860,7 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
                 //ae1n += pow(A2c[row+hdim*col],2);
             }
             // filling all energies for spectral function
-            ind = (int)((theham->W[row]-theham->W[col]+2.5)/5.*(nbins));
+            ind = (int)((theham->W[row]-theham->W[col]+1.5)/3.*(nbins));
             if (ind<0) ind = 0;
             if (ind>=nbins) ind = nbins-1;
             aew[ind] += mel2; // spectral function includes contribution at zero energy
@@ -876,6 +876,15 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
             aeoEL[row] /= (double)cntr[row];
         }
     }
+    if (iter ==0)     cout<<"awSz(";
+    else if (iter==1) cout<<"awSpSm(";
+    else if (iter==2) cout<<"awJ(";
+    else    cout<<"aw(";
+    cout<<crun+1<<",:)=["<<aew[0];
+    for (col=1; col<nbins; col++){
+        cout<<","<<aew[col];
+    }
+    cout<<"];"<<endl;
     delete[] cntr;
     //cout<<"];";
 }
@@ -917,12 +926,13 @@ void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moe
             ind = abs(row-col);
             //if (ind<0) ind = 0;
             if (ind>=nbins) ind = nbins-1;
+            //if (ind==1)  cout<<mel2<<"/"<<mdiag2<<"="<<mel2/mdiag2<<endl;
             beta[ind] += mel2/mdiag2;
             betaL[ind] += melL - mdiagL;
             m[ind] +=mel;
             mL[ind] +=melL;
             cntr[ind]++;
-            if (row>col){
+            if (row!=col){
                 csum+=mel2/absv(theham->W[row]-theham->W[col]);
                 moeS[ind]+=csum;
                 moeSL[ind]+=log(csum);
@@ -937,7 +947,7 @@ void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moe
             m[row] /= (double)cntr[row];
             mL[row] /= (double)cntr[row];
         }
-        if (cntr[row]>0){
+        if (cntrS[row]>0){
             moeS[row] /= (double)cntrS[row];
             moeSL[row] /= (double)cntrS[row];
         }
@@ -956,7 +966,7 @@ void obs_mel::measureAstat2(){
     int cind=0;
     int cspin,cspin2;
     // sz in the beginning
-    for (int iter=0;iter<nobs;iter++){
+    for (iter=0;iter<nobs;iter++){
 	    cspin=1;
 	    cspin2=1;
 	    cind = crun+nruns*iter;
@@ -968,7 +978,7 @@ void obs_mel::measureAstat2(){
   	    fillae(ae0[cind],ae1[cind],aeoE[cind],ae0L[cind],aeoEL[cind],aew[cind]);
         fillaN(beta[cind],betaL[cind],m[cind],mL[cind],moES[cind],moESL[cind]);
 	    fillhist2sort(hyst1[cind],hyst2[cind],mdE[cind],cE[crun],mdE2[cind],cE2[crun],mdd[cind],mdc[cind],mdce[cind],mdce2[cind]);
-        fillIPR(iprM+cind,iprMstat[cind]);
+        //fillIPR(iprM+cind,iprMstat[cind]);
 	}
     // for (int iter=0;iter<nobs*nruns;iter++){
     //     cout<<iprM[iter]<<",";
@@ -1189,6 +1199,7 @@ void obs_mel::writedata() {
         fput("log sum M2/E vs N", darr3, nbins);
         fput("disp", darr4, nbins);
     }
+    /*
     for (int i=0; i<nobs; i++) {
         getav(iprM+nruns*i, crun, darr3, darr4);
         fput("average IPR", darr3, 1);
@@ -1199,7 +1210,7 @@ void obs_mel::writedata() {
         getav(iprMstat+nruns*i, crun, nbins, darr3, darr4);
         fput("histogram of coefficients", darr3, nbins);
         fput("disp", darr4, nbins);
-    }
+    }*/
     delete[] darr1;
     delete[] darr2;
     delete[] darr3;

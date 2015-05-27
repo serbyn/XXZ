@@ -27,6 +27,7 @@ class obs_mel: public obs{
     // stroring the data for histograms 
     int nbins; // number of bins
     int nobs; // number of operators
+    int iter;// storing current operator
     double *A2; // matrix after the action of a operator
     double *A2c; // matrix with coefficients of decomposition, the main object
     double **hyst1; // array with hystogram data

@@ -433,7 +433,7 @@ int main (int argc, char const *argv[]){ // hz, Jz, name of version
     else{//running in the test mode
         cout<<"%Test mode"<<endl;
         //runsim(12,5,.5,1.,"test");
-        runsim(6,1,.6,1.,"h5test");
+        runsim(8,100,.6,1.,"h5test");
     }
     time_end = time(0);
     //cout<<"Total running time was"<<time_end-time_start<<endl;
