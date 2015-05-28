@@ -891,7 +891,7 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
 
 //fills in distribution of matrix elements with index in the middle of the band
 void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moeS,double *moeSL){
-    int col, row, ind;
+    int col, row, ind, ind2;
     integer cel;
     //double ae1n;
     int *cntr = new int[nbins];
@@ -911,8 +911,6 @@ void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moe
     //ae1n = 0;
     double mel,mel2;
     double melL;
-    double mdiagL;
-    double mdiag2;
     double csum;
     for (col=ez-dt/2; col<ez+dt/2; col++) {
         csum=0;
@@ -920,19 +918,25 @@ void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moe
             cel = row+hdim*col;
             mel  = absv(A2c[cel]);
             mel2 = pow(mel,2);
-            mdiagL = log(absv(A2c[col+hdim*col]));
-            mdiag2 = pow(A2c[col+hdim*col],2);
+            //mdiagL = log(absv(A2c[col+hdim*col]));
+            //mdiag2 = pow(A2c[col+hdim*col],2);
             melL = log(mel);
             ind = abs(row-col);
             //if (ind<0) ind = 0;
             if (ind>=nbins) ind = nbins-1;
             //if (ind==1)  cout<<mel2<<"/"<<mdiag2<<"="<<mel2/mdiag2<<endl;
-            beta[ind] += mel2/mdiag2;
-            betaL[ind] += melL - mdiagL;
+            ind2 = (int)floor(mel*nbins);
+            if (ind2<0) ind2=0;
+            if (ind2>=nbins) ind2 = nbins-1;
+            beta[ind2] += 1;
+            ind2 = (int)floor(-melL/30*nbins);
+            if (ind2<0) ind2=0;
+            if (ind2>=nbins) ind2 = nbins-1;
+            betaL[ind2] += 1;
             m[ind] +=mel;
             mL[ind] +=melL;
             cntr[ind]++;
-            if (row!=col){
+            if (row>col){
                 csum+=mel2/absv(theham->W[row]-theham->W[col]);
                 moeS[ind]+=csum;
                 moeSL[ind]+=log(csum);
@@ -942,8 +946,6 @@ void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moe
     }
     for (row=0; row<nbins; row++) {
         if (cntr[row]>0){
-            beta[row] /= (double)cntr[row];
-            betaL[row] /= (double)cntr[row];
             m[row] /= (double)cntr[row];
             mL[row] /= (double)cntr[row];
         }
@@ -973,7 +975,7 @@ void obs_mel::measureAstat2(){
 	    if (iter==0)  szA2vec(cspin);    //szmA2(cspin);
 	    else if (iter==1) spsmmA2vec(cspin2);
 	    else if (iter==2) curr1A2(0);
-	    else if (iter==3) sp__smMA2();
+	    else if (iter==3) currA2();// sp__smMA2();
    	    buildA2c();
   	    fillae(ae0[cind],ae1[cind],aeoE[cind],ae0L[cind],aeoEL[cind],aew[cind]);
         fillaN(beta[cind],betaL[cind],m[cind],mL[cind],moES[cind],moESL[cind]);
