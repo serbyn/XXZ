@@ -120,7 +120,7 @@ void runmeas_ent (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     DataSpace dataspace1( 1, dimsf );
     dimsf[0] = sc_hsp.hdim;
     DataSpace dataspace2( 1, dimsf );
-    dimsf[0] = sc_dmt.size2;
+    dimsf[0] = sc_dmt.size*sc_ham.size;
     DataSpace dataspace3( 1, dimsf );
     
     // arrays with parameters of Hamiltonian
@@ -140,7 +140,7 @@ void runmeas_ent (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     sc_ham.createH();
     
     double *specs;
-    specs = new double[sc_dmt.size2];
+    specs = new double[sc_dmt.size*sc_ham.size];
     // loop over different realizations of disorder
     for (k=0; k<kmax; k++) {
         out.str("");
@@ -158,7 +158,7 @@ void runmeas_ent (int nspin, int nruns, double hzinp, double Jzinp, string ver)
         group = file_spec->createGroup(gname);
         dataset = file_spec->createDataSet( gname+W_NAME, doubtype, dataspace2 );
         dataset.write( sc_ham.W, PredType::NATIVE_DOUBLE );
-        for (int v=0; v<sc_dmt.size; v++) {
+        for (int v=0; v<sc_ham.size; v++) {
             sc_dmt.constructrho(v, &sc_ham);
             sc_dmt.svd();
             memcpy(specs+v*sc_dmt.size, sc_dmt.W, (sizeof(double))*sc_dmt.size);

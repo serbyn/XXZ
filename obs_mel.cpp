@@ -821,6 +821,7 @@ void obs_mel::fillIPR(double* iprM, double *iprMstat){
 
 //fills in distribution of matrix elements with energy difference in the middle of the band: power: linear, square spectral function
 // elements are filled for the middle of the band
+// aeoE now is just diagonal matrix element with energy difference!!!
 void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *aeoEL,double *aew){
     int col, row, ind;
     integer cel;
@@ -838,12 +839,14 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
     //cout<<"matrix elements with energy"<<endl;
     //cout<<"mat=[";
     //ae1n = 0;
-    double mel,mel2;
+    double mel,mel2,mel0,mel00;
     double melL;
     for (col=ez-dt/2; col<ez+dt/2; col++) {
+        mel0 = A2c[col+hdim*col];
         for (row=0; row<hdim; row++) {
             cel = row+hdim*col;
             mel  = absv(A2c[cel]);
+            mel00  = A2c[row+hdim*row];
             mel2 = pow(mel,2);
             // filling only positive energy part:
             if (row>col){
@@ -853,9 +856,9 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
                 melL = log(mel);
                 ae0[ind] += mel;
                 ae1[ind] += mel2;
-                aeoE[ind] += mel2/absv(theham->W[row]-theham->W[col]);
+                aeoE[ind] += mel0*mel00;
+                aeoEL[ind] += log(absv(mel0*mel00));
                 ae0L[ind] += melL;
-                aeoEL[ind] += 2*melL - log(absv(theham->W[row]-theham->W[col]));
                 cntr[ind]+=1;
                 //ae1n += pow(A2c[row+hdim*col],2);
             }
@@ -890,12 +893,12 @@ void obs_mel::fillae(double *ae0,double *ae1,double *aeoE,double *ae0L,double *a
 }
 
 //fills in distribution of matrix elements with index in the middle of the band
+// moES now is just diagonal matrix element with energy difference!!!
 void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moeS,double *moeSL){
     int col, row, ind, ind2;
     integer cel;
     //double ae1n;
     int *cntr = new int[nbins];
-    int *cntrS = new int[nbins];
     for (row=0; row<nbins; row++) {
         beta[row] = 0.;
         betaL[row] = 0.;
@@ -904,16 +907,14 @@ void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moe
         moeS[row] = 0.;
         moeSL[row] = 0.;
         cntr[row] = 0;
-        cntrS[row] = 0;
     }
     //cout<<"matrix elements with energy"<<endl;
     //cout<<"mat=[";
     //ae1n = 0;
-    double mel,mel2;
+    double mel,mel2,mel0,mel00;
     double melL;
-    double csum;
     for (col=ez-dt/2; col<ez+dt/2; col++) {
-        csum=0;
+        mel0 = A2c[col+hdim*col];
         for (row=0; row<hdim; row++) {
             cel = row+hdim*col;
             mel  = absv(A2c[cel]);
@@ -936,27 +937,20 @@ void obs_mel::fillaN(double *beta,double *betaL,double *m,double *mL,double *moe
             m[ind] +=mel;
             mL[ind] +=melL;
             cntr[ind]++;
-            if (row>col){
-                csum+=mel2/absv(theham->W[row]-theham->W[col]);
-                moeS[ind]+=csum;
-                moeSL[ind]+=log(csum);
-                cntrS[ind]++;
-            }
+            mel00=mel0*A2c[row+hdim*row];
+            moeS[ind]+=mel00;
+            moeSL[ind]+=log(absv(mel00));
         }
     }
     for (row=0; row<nbins; row++) {
         if (cntr[row]>0){
             m[row] /= (double)cntr[row];
             mL[row] /= (double)cntr[row];
-        }
-        if (cntrS[row]>0){
-            moeS[row] /= (double)cntrS[row];
-            moeSL[row] /= (double)cntrS[row];
+            moeSL[row] = moeSL[row]/(double)cntr[row];
+            moeS[row] /= (double)cntr[row];
         }
     }
     delete[] cntr;
-    delete[] cntrS;
-    //cout<<"];";
 }
 
 
