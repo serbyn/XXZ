@@ -7,16 +7,13 @@
 #include <ran.h>
 #include <hsp.h>
 #include <ham.h>
-#include <dmt.h>
 #include <obs.h>
-#include <obs_band.h>
 #include <obs_frac.h>
 #include <obs_mel.h>
 #include <globalfunctions.h>
 #include "time.h"
 #include <sstream>
 #include <fstream>
-
 #include "H5Cpp.h"
 #include "hdf5_hl.h"
 
@@ -205,7 +202,6 @@ void runmeas (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     // creating structures
     hsp sc_hsp(nspin);
     ham sc_ham(&sc_hsp);
-    dmt sc_dmt(&sc_hsp);
     // Name of output file
     out.str("");
     out << ver<<"_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".h5";

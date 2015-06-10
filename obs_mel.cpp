@@ -33,7 +33,7 @@ obs_mel::obs_mel(hsp *thehsp1, ham* theham1, Ran* theran1, int nruns1, FILE* fil
     dt = 2*( (int) (hdim/nspin/2));
     if (dt<2) dt=2;
     nbins = 1000;
-    nobs = 4;
+    nobs = 3;
     ez=hdim/2;
     hw = 1;
     cout<<"% in the middle we have "<< dt <<" states to study"<<endl;
