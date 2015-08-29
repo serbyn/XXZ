@@ -9,7 +9,7 @@
 // dealing with LAPACK in a universal way
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
-#include <vecLib/clapack.h>
+//#include <vecLib/clapack.h>
 typedef __CLPK_doublereal doublereal;
 typedef __CLPK_integer integer;
 typedef __CLPK_doublecomplex cmplx;

@@ -17,8 +17,8 @@
 #include <sstream>
 #include <fstream>
 
-#include "H5Cpp.h"
-#include "hdf5_hl.h"
+#include "/usr/local/hdf5/include/H5Cpp.h"
+#include "/usr/local/hdf5/include/hdf5_hl.h"
 
 #ifndef H5_NO_NAMESPACE
 using namespace H5;

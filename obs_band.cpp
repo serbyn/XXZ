@@ -14,7 +14,7 @@
 #include <globalfunctions.h>
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
-#include <vecLib/cblas.h>
+//#include <vecLib/cblas.h>
 typedef __CLPK_doublereal doublereal;
 typedef __CLPK_integer integer;
 typedef __CLPK_doublecomplex cmplx;

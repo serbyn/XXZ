@@ -395,6 +395,7 @@ void runsim (int nspin, int nruns, double hzinp, double Jzinp, string ver)
 }
 
 int main (int argc, char const *argv[]){ // hz, Jz, name of version
+    cout<<"running diagl"<<endl;
     //initialize random generator!
     unsigned long long int sek;
     sek = time(0);
