@@ -299,6 +299,158 @@ void runmeas (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     return;
 }
 
+// calculating and saving matrix elements using data obtained from ED
+void runmeas_matel(int nspin, int nruns, double hzinp, double Jzinp, string ver)
+{
+// hdf5 output/input variables
+    string measname;
+    std::ostringstream out;
+    FILE* fileout;
+    string fname;
+    string fname_spec;
+    string gname;
+    // output file for observables
+    out.str("");
+    out << ver<<"_mel_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".out";
+    measname = out.str();
+    fileout = fopen( &measname[0], "w");
+
+    // Input hdf5 file with spectrum
+    out.str("");
+    out << ver<<"_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".h5";
+    fname = out.str();
+
+    // Output hdf5 file with matrix elements
+    out.str("");
+    out << ver<<"_sz_"<<nspin<<"_"<<Jzinp<<"_"<<hzinp<<".h5";
+    fname_spec = out.str();
+    
+// code variables
+    int i,k,hav, kmax;
+    hav = nruns;
+    double time_start, time_end;
+    // creating structures
+    hsp sc_hsp(nspin);
+    ham sc_ham(&sc_hsp);
+
+
+    
+    int kread[1];
+    int par[1]={nspin};
+    double par_d[1]={hzinp};
+    IntType inttype( PredType::NATIVE_INT );
+    inttype.setOrder( H5T_ORDER_LE );
+    IntType doubtype( PredType::NATIVE_DOUBLE);
+    doubtype.setOrder( H5T_ORDER_LE );
+    hsize_t     dimsf[1];              // dataset dimensions
+    dimsf[0] = 1;
+    H5std_string  FILE_NAME( &fname[0] );
+    H5std_string  FILE_NAME_SPEC( &fname_spec[0] );
+    H5File *file;
+    H5File *file_spec;
+    DataSet datasetN;
+    DataSet dataset;
+    if (file_exists_test(fname)){
+        cout<<"%File  "<<fname<<"  exists ==> doing measurment using data from existing file"<<endl;
+        file = new H5File( FILE_NAME, H5F_ACC_RDWR);
+        //H5LTread_dataset(file,"/nruns",kread);
+        datasetN  = file->openDataSet("/nruns");
+        datasetN.read(kread, PredType::NATIVE_INT);
+        kmax = kread[0]+1;
+        cout<<"%File  "<<fname<<"  contains "<<kmax<<" realizations;"<<endl;
+        if (kmax>nruns) kmax = nruns;
+        cout<<"%Using "<<kmax<<" of them... beginning measurments..."<<endl;
+        // initializing file for output matrix elements
+        file_spec = new H5File( FILE_NAME_SPEC, H5F_ACC_TRUNC );
+        DataSpace dataspace( 1, dimsf );
+        H5std_string  Bpar_NAME( "L" );
+        dataset = file_spec->createDataSet( Bpar_NAME, inttype, dataspace );
+        dataset.write(par, PredType::NATIVE_INT );
+        Bpar_NAME = "W";
+        dataset = file_spec->createDataSet( Bpar_NAME, doubtype, dataspace );
+        dataset.write(par_d, PredType::NATIVE_DOUBLE );
+        Bpar_NAME = "Jz";
+        dataset = file_spec->createDataSet( Bpar_NAME, doubtype, dataspace );
+        par_d[0]=Jzinp;
+        dataset.write(par_d, PredType::NATIVE_DOUBLE );
+        Bpar_NAME = "nruns";
+        datasetN = file_spec->createDataSet( Bpar_NAME, inttype, dataspace);
+        par_d[0]=kmax;
+        datasetN.write(par_d, PredType::NATIVE_DOUBLE );
+    }else {
+        cout<<"%FILE "<<fname<< " DOES NOT EXIST!!!, TERMINATING"<<endl;
+        exit(-1);
+    }
+    Group group;
+    H5std_string  Warr_NAME( "/Warr" );
+    H5std_string  Jzz_NAME( "/Jzz" );
+    H5std_string  Jperp_NAME( "/Jperp" );
+    H5std_string  W_NAME( "/W" );
+    H5std_string  A_NAME( "/MSz" );
+    dimsf[0] = nspin;
+    DataSpace dataspace1( 1, dimsf );
+    dimsf[0] = sc_hsp.hdim;
+    DataSpace dataspace2( 1, dimsf );
+    dimsf[0] = sc_hsp.hdim2;
+    DataSpace dataspace3( 1, dimsf );
+/////////////////////
+    obs_mel sc_obs_frac(&sc_hsp, &sc_ham, &myran, kmax, fileout);
+    // arrays with parameters of Hamiltonian
+    double * hz;
+    hz = new double[nspin];
+    double * Jz;
+    Jz = new double[nspin];
+    double * Jp;
+    Jp = new double[nspin];
+    for (i=0;i<nspin;i++)
+    {
+        hz[i]= hzinp*(2.*(myran.doub())-1.);
+        Jz[i] = Jzinp;
+        Jp[i] = 1.;
+    }
+    sc_ham.setparam(hz,Jz,Jp);
+    sc_ham.createH();
+    // loop over different realizations of disorder
+    for (k=0; k<kmax; k++) {
+        out.str("");
+        out << "/run_"<<k;
+        gname = out.str();
+        // reading from hdf5
+        time_start = time(0);
+        dataset  = file->openDataSet(gname+"/W");
+        dataset.read(sc_ham.W, PredType::NATIVE_DOUBLE);
+        dataset  = file->openDataSet(gname+"/A");
+        dataset.read(sc_ham.A, PredType::NATIVE_DOUBLE);
+        time_end = time(0);
+        cout <<"%k="<<k<<"; Elapsed for reading  data time is t="<<time_end-time_start<<endl;
+        time_start = time(0);
+        sc_obs_frac.szA2vec(0);
+        sc_obs_frac.buildA2c();
+        
+        //sc_obs_frac.A2c
+        time_end = time(0);
+        cout <<"Elapsed for measuring data time is t="<<time_end-time_start<<endl;
+        time_start = time(0);
+        group = file_spec->createGroup(gname);
+        dataset = file_spec->createDataSet( gname+W_NAME, doubtype, dataspace2 );
+        dataset.write( sc_ham.W, PredType::NATIVE_DOUBLE );
+        dataset = file_spec->createDataSet( gname+A_NAME, doubtype, dataspace3 );
+        dataset.write( sc_obs_frac.A2c, PredType::NATIVE_DOUBLE );
+        cout <<"Elapsed for writing data time is t="<<time_end-time_start<<endl;
+
+    }
+    // final output
+    sc_obs_frac.filep = fileout;
+    sc_obs_frac.writebasicdata();
+    sc_obs_frac.writedata();
+    fclose(fileout);
+    delete[] hz;
+    delete[] Jz;
+    delete[] Jp;
+    file->close();
+    return;
+}
+
 
 void runsim (int nspin, int nruns, double hzinp, double Jzinp, string ver)
 {   //Global intialization
@@ -393,7 +545,9 @@ void runsim (int nspin, int nruns, double hzinp, double Jzinp, string ver)
     delete[] Jp;
     return;
 }
-
+// rundiag : running ED code and saving to hdf5
+// runmeas : measuring something loading data from hdf5 files
+// runsim : simultaneous running and measurements
 int main (int argc, char const *argv[]){ // hz, Jz, name of version
     cout<<"running diagl"<<endl;
     //initialize random generator!
@@ -429,8 +583,8 @@ int main (int argc, char const *argv[]){ // hz, Jz, name of version
     }
     else{//running in the test mode
         cout<<"%Test mode"<<endl;
-        //runsim(12,5,.5,1.,"test");
-        runsim(8,100,.6,1.,"h5test");
+        //rundiag(14,5,.5,1.,"test");
+        runmeas_matel(14,5,.5,1.,"test");
     }
     time_end = time(0);
     //cout<<"Total running time was"<<time_end-time_start<<endl;
