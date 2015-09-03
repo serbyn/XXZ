@@ -424,10 +424,8 @@ void runmeas_matel(int nspin, int nruns, double hzinp, double Jzinp, string ver)
         time_end = time(0);
         cout <<"%k="<<k<<"; Elapsed for reading  data time is t="<<time_end-time_start<<endl;
         time_start = time(0);
-        sc_obs_frac.szA2vec(0);
+        sc_obs_frac.szA2vec(1);
         sc_obs_frac.buildA2c();
-        
-        //sc_obs_frac.A2c
         time_end = time(0);
         cout <<"Elapsed for measuring data time is t="<<time_end-time_start<<endl;
         time_start = time(0);
@@ -583,8 +581,8 @@ int main (int argc, char const *argv[]){ // hz, Jz, name of version
     }
     else{//running in the test mode
         cout<<"%Test mode"<<endl;
-        //rundiag(14,5,.5,1.,"test");
-        runmeas_matel(14,5,.5,1.,"test");
+        //rundiag(6,2,.5,1.,"test");
+        runmeas_matel(6,2,.5,1.,"test");
     }
     time_end = time(0);
     //cout<<"Total running time was"<<time_end-time_start<<endl;

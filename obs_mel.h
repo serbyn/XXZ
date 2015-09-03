@@ -19,6 +19,8 @@ class obs_mel: public obs{
     void szA2vec(int ns); // constructing the matrix after action of sz using optimized code
     void buildA2c(); // fills in A2c -- matrix of coefficients
     double *A2c; // matrix with coefficients of decomposition, the main object
+    double *A2; // matrix after the action of a operator
+    
     private:
     int band2; // number of portions in the energy band
     int dt; // number of states in a portion of the band
@@ -30,7 +32,7 @@ class obs_mel: public obs{
     int nbins; // number of bins
     int nobs; // number of operators
     int iter;// storing current operator
-    double *A2; // matrix after the action of a operator
+   
     double **hyst1; // array with hystogram data
     double **hyst2; // array with hystogram data
     double **mdE; // array with hystogram data
